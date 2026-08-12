@@ -1,0 +1,37 @@
+# --- Original / private source files (DO NOT COMMIT) ---
+# These are the private originals this public repo is derived from.
+Gmail Support Assistant.blueprint.json
+Gmail_Support_Assistant.xlsx
+
+# --- Secrets / credentials ---
+.env
+.env.*
+!.env.example
+credentials*.json
+client_secret*.json
+service-account*.json
+token*.json
+*.pem
+*.key
+
+# --- Office lock files ---
+~$*.xlsx
+
+# --- OS files ---
+.DS_Store
+
+# --- Private data / exports (never publish real data) ---
+data/private/
+exports/private/
+screenshots/raw/
+assets/screenshots/raw/
+
+# --- Private / production Make blueprints ---
+make/blueprints/*-private.json
+make/blueprints/*-production.json
+
+# --- Claude Code local settings ---
+.claude/settings.local.json
+
+# --- Local agent scratch files ---
+.codex-tmp/

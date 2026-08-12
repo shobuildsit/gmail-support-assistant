@@ -1,0 +1,51 @@
+{
+  "version": "1.0.0",
+  "title": "お問い合わせフォーム | Gmail Support Assistant Demo",
+  "description": "製品・配送・返金・技術的な問題に関するお問い合わせを受け付けます。入力内容は、回答案の作成とサポート対応のためにGoogle Sheets、Make、OpenAI、Slack、Gmailで処理されます。送信前に個人情報や機密情報を必要以上に記載していないことをご確認ください。AIが作成した返信案は自動送信されず、担当者が確認します。",
+  "confirmation_message": "お問い合わせを受け付けました。担当者が内容を確認します。AIが作成した返信案が自動送信されることはありません。",
+  "settings": {
+    "collect_email_automatically": false,
+    "limit_one_response": false,
+    "show_progress_bar": false,
+    "shuffle_questions": false,
+    "show_submit_another_response_link": false,
+    "publish_response_summary": false
+  },
+  "response_sheet_contract": {
+    "sheet_name": "Form",
+    "headers": ["Timestamp", "Name", "Email", "Subject", "Message"]
+  },
+  "questions": [
+    {
+      "title": "Name",
+      "label_ja": "お名前",
+      "type": "short_text",
+      "required": true,
+      "max_length": 100,
+      "help_text": "例：山田 太郎（100文字以内）"
+    },
+    {
+      "title": "Email",
+      "label_ja": "返信先メールアドレス",
+      "type": "email",
+      "required": true,
+      "help_text": "担当者からの返信を受け取れるメールアドレスを入力してください。"
+    },
+    {
+      "title": "Subject",
+      "label_ja": "件名",
+      "type": "short_text",
+      "required": true,
+      "max_length": 150,
+      "help_text": "例：届いた商品が破損していました（150文字以内）"
+    },
+    {
+      "title": "Message",
+      "label_ja": "お問い合わせ内容",
+      "type": "paragraph",
+      "required": true,
+      "max_length": 5000,
+      "help_text": "注文番号、発生日時、希望する対応など、確認に必要な情報を具体的に入力してください。パスワードや決済情報は入力しないでください。（5000文字以内）"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">Sanitized end-to-end demo of Gmail Support Assistant</title>
+  <desc id="desc">Synthetic example data shows a form submission, AI triage result, completed processing flags, and a Gmail draft ready for human review.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8fafc"/><stop offset="1" stop-color="#e0e7ff"/></linearGradient>
+    <filter id="s" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#334155" flood-opacity=".16"/></filter>
+    <style>
+      .title{font:750 36px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#0f172a}.sub{font:400 17px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#475569}
+      .cap{font:700 13px system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:1.2px;fill:#64748b}.h{font:700 21px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#0f172a}
+      .t{font:400 15px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#334155}.small{font:600 13px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#475569}.ok{font:700 13px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#166534}
+      .card{fill:#fff;stroke:#cbd5e1;stroke-width:1.2;filter:url(#s)}
+    </style>
+  </defs>
+  <rect width="1440" height="810" rx="28" fill="url(#bg)"/>
+  <text x="64" y="66" class="title">Verified flow, shown with synthetic data</text>
+  <text x="64" y="98" class="sub">Public-safe reconstruction · not a screenshot of the private live accounts</text>
+
+  <g class="card"><rect x="64" y="140" width="392" height="540" rx="22"/>
+    <rect x="64" y="140" width="392" height="74" rx="22" fill="#2563eb"/><rect x="64" y="190" width="392" height="24" fill="#2563eb"/>
+    <text x="94" y="178" font-family="system-ui" font-size="20" font-weight="700" fill="#fff">1 · Google Form</text>
+    <text x="94" y="247" class="cap">NAME</text><rect x="94" y="260" width="332" height="44" rx="8" fill="#f8fafc" stroke="#cbd5e1"/><text x="110" y="287" class="t">Portfolio Demo User</text>
+    <text x="94" y="333" class="cap">EMAIL</text><rect x="94" y="346" width="332" height="44" rx="8" fill="#f8fafc" stroke="#cbd5e1"/><text x="110" y="373" class="t">portfolio-demo@example.com</text>
+    <text x="94" y="419" class="cap">SUBJECT</text><rect x="94" y="432" width="332" height="44" rx="8" fill="#f8fafc" stroke="#cbd5e1"/><text x="110" y="459" class="t">Delivery status inquiry</text>
+    <text x="94" y="505" class="cap">MESSAGE</text><rect x="94" y="518" width="332" height="94" rx="8" fill="#f8fafc" stroke="#cbd5e1"/><text x="110" y="547" class="t">Please confirm the current status</text><text x="110" y="572" class="t">and estimated delivery date.</text>
+    <rect x="94" y="630" width="128" height="34" rx="17" fill="#2563eb"/><text x="130" y="652" font-family="system-ui" font-size="14" font-weight="700" fill="#fff">Submit</text>
+  </g>
+
+  <path d="M474 410h55" stroke="#64748b" stroke-width="4"/><path d="m529 410-13-8v16z" fill="#64748b"/>
+
+  <g class="card"><rect x="546" y="140" width="348" height="540" rx="22"/>
+    <rect x="546" y="140" width="348" height="74" rx="22" fill="#6d28d9"/><rect x="546" y="190" width="348" height="24" fill="#6d28d9"/>
+    <text x="576" y="178" font-family="system-ui" font-size="20" font-weight="700" fill="#fff">2 · AI triage + state</text>
+    <text x="576" y="249" class="cap">STRUCTURED RESULT</text>
+    <text x="576" y="287" class="small">Category</text><text x="742" y="287" class="t">Delivery issue</text>
+    <line x1="576" y1="302" x2="864" y2="302" stroke="#e2e8f0"/>
+    <text x="576" y="334" class="small">Priority</text><text x="742" y="334" class="t">Medium</text>
+    <line x1="576" y1="349" x2="864" y2="349" stroke="#e2e8f0"/>
+    <text x="576" y="381" class="small">Sentiment</text><text x="742" y="381" class="t">Neutral</text>
+    <line x1="576" y1="396" x2="864" y2="396" stroke="#e2e8f0"/>
+    <text x="576" y="428" class="small">Human review</text><text x="742" y="428" class="t">Required</text>
+    <text x="576" y="479" class="cap">PROCESSING_STATE</text>
+    <rect x="576" y="500" width="288" height="46" rx="10" fill="#dcfce7"/><text x="596" y="528" class="ok">● COMPLETED</text>
+    <text x="576" y="577" class="ok">✓ AI output persisted</text>
+    <text x="576" y="604" class="ok">✓ CRM written</text>
+    <text x="576" y="631" class="ok">✓ Slack notified</text>
+    <text x="576" y="658" class="ok">✓ Gmail draft created</text>
+  </g>
+
+  <path d="M912 410h55" stroke="#64748b" stroke-width="4"/><path d="m967 410-13-8v16z" fill="#64748b"/>
+
+  <g class="card"><rect x="984" y="140" width="392" height="540" rx="22"/>
+    <rect x="984" y="140" width="392" height="74" rx="22" fill="#b91c1c"/><rect x="984" y="190" width="392" height="24" fill="#b91c1c"/>
+    <text x="1014" y="178" font-family="system-ui" font-size="20" font-weight="700" fill="#fff">3 · Gmail draft</text>
+    <rect x="1014" y="244" width="332" height="384" rx="12" fill="#fff" stroke="#cbd5e1"/>
+    <text x="1038" y="278" class="small">To</text><text x="1092" y="278" class="t">portfolio-demo@example.com</text>
+    <line x1="1038" y1="294" x2="1322" y2="294" stroke="#e2e8f0"/>
+    <text x="1038" y="326" class="small">Subject</text><text x="1104" y="326" class="t">Delivery status update</text>
+    <line x1="1038" y1="342" x2="1322" y2="342" stroke="#e2e8f0"/>
+    <text x="1038" y="382" class="t">Portfolio Demo User,</text>
+    <text x="1038" y="419" class="t">Thank you for contacting us.</text>
+    <text x="1038" y="449" class="t">Our support team will confirm the</text>
+    <text x="1038" y="474" class="t">delivery status and contact you.</text>
+    <rect x="1038" y="548" width="114" height="36" rx="18" fill="#e2e8f0"/><text x="1064" y="571" class="small">DRAFT</text>
+    <text x="1038" y="612" class="small">Human review required before sending</text>
+  </g>
+
+  <rect x="64" y="718" width="1312" height="54" rx="18" fill="#0f172a"/>
+  <text x="92" y="751" font-family="system-ui" font-size="15" font-weight="650" fill="#e2e8f0">Live evidence: happy path completed · terminal replay stopped in 6 control operations · no duplicate CRM, Slack, or Gmail draft</text>
+</svg>

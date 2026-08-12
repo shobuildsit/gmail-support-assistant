@@ -1,0 +1,11 @@
+* text=auto
+
+*.csv text eol=lf
+*.gs text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.md text eol=lf
+*.py text eol=lf
+*.svg text eol=lf
+
+*.xlsx binary

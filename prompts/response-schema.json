@@ -1,0 +1,57 @@
+{
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "enum": [
+        "配送トラブル",
+        "返金依頼",
+        "商品に関する質問",
+        "技術的な問題",
+        "クレーム",
+        "その他"
+      ]
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "高",
+        "中",
+        "低"
+      ]
+    },
+    "sentiment": {
+      "type": "string",
+      "enum": [
+        "ポジティブ",
+        "普通",
+        "ネガティブ"
+      ]
+    },
+    "requires_human": {
+      "type": "boolean"
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "reply_subject": {
+      "type": "string",
+      "maxLength": 150
+    },
+    "reply_body": {
+      "type": "string",
+      "maxLength": 3000
+    }
+  },
+  "required": [
+    "category",
+    "priority",
+    "sentiment",
+    "requires_human",
+    "summary",
+    "reply_subject",
+    "reply_body"
+  ],
+  "additionalProperties": false
+}
