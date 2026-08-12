@@ -292,12 +292,10 @@ list of what's confirmed vs. not.
   customer-identifying value can be reliably removed; until then, keep the
   public-safe synthetic demo visualization.
 
-## Before this goes to GitHub
+## Publishing safety
 
-This repository has been initialized locally on the `main` branch and has a
-reviewed initial portfolio commit. It has **not been pushed anywhere yet** and
-has no remote configured.
-A few things must still be done deliberately before publication:
+This repository is published from the reviewed `main` branch. Keep the
+following safeguards in place for every future commit and release:
 
 - **Confirm `.gitignore` is actually protecting the private files.**
   [`.gitignore`](.gitignore) excludes the private originals

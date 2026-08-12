@@ -49,8 +49,9 @@ Google, Slack, Gmail, or customer identifiers.
   private-account screenshots, and are included in the automated secret scan.
 - Selected the MIT License and initialized a local `main` Git repository.
   Private source exports, local Claude settings, and Codex scratch files remain
-  ignored. A reviewed initial portfolio commit was created locally; no remote
-  was configured and nothing was pushed at this stage.
+  ignored. A reviewed initial portfolio commit was created locally and pushed
+  to the public GitHub repository on 2026-08-12; `origin/main` is now the
+  tracked public branch.
 - Recorded the legacy row-number collision constraint and the live Form's
   Subject-validator deviation instead of presenting them as verified behavior.
 - Retained explicit blocked filters for incomplete validation and abnormal
