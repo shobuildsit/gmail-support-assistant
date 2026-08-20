@@ -1,321 +1,118 @@
-# Gmail Support Assistant
+# Gmailカスタマーサポート支援
 
-A customer-support automation that triages incoming inquiries with AI,
-logs them to a CRM sheet, notifies a Slack channel, and prepares a Gmail
-reply — as a **draft**, never sent automatically.
+[English](README.en.md)
 
-Built with Google Forms, Google Sheets, [Make.com](https://www.make.com),
-OpenAI, Slack, and Gmail.
+問い合わせをAIで分類し、CRM記録、Slack通知、Gmail返信下書きまでをつなぐカスタマーサポート自動化です。返信は**下書きとして作成するだけ**で、自動送信しません。最終確認と送信は必ず人が行います。
 
-> **⚠️ Gmail replies are drafts only.** This system never sends email on
-> its own. A human always reviews and sends the final reply from Gmail.
-> This is a deliberate safety property of the design, not a limitation —
-> see [`docs/architecture.md`](docs/architecture.md#safety-property-drafts-not-sends).
+Google Forms、Google Sheets、Make.com、OpenAI、Slack、Gmailを組み合わせています。このリポジトリは、実際に構築・検証したワークフローからアカウント固有情報と顧客データを除いた公開版です。
 
-## What this repository is
+> **安全上の重要な設計:** Gmailで行うのは下書き作成だけです。AIが顧客へ直接メールを送ることはありません。
 
-This is a **sanitized, public** version of a private working automation.
-The original Make.com blueprint and spreadsheet (which contain real
-account identifiers) are not included — see [`SECURITY.md`](SECURITY.md).
-What's here is a cleaned-up structural reference: the scenario logic, the
-AI prompt, the data model, and setup documentation, with all
-account-specific values replaced by placeholders.
+## 解決する業務課題
 
-This repository has gone through the following phases so far:
+問い合わせ対応では、内容の把握、優先度判断、CRMへの転記、社内共有、返信案の作成が繰り返し発生します。単純な直列自動化では、途中失敗後の再実行によって、すでに成功したCRM記録やSlack通知が重複する問題もあります。
 
-- **Phase 1** — repository scaffolding, a sanitized blueprint copy, and
-  initial documentation.
-- **Phase 2A** — externalized the AI prompt and JSON Schema into
-  [`prompts/`](prompts/) (reviewable and diffable instead of buried in
-  the blueprint JSON), removed the customer's email address from the AI
-  input, disabled OpenAI's `store`/`createConversation` settings, added
-  explicit prompt-injection defenses, and added offline structural tests
-  under [`tests/`](tests/).
-- **Phase 2A live verification** — the published blueprint was actually
-  imported and run in a live Make.com scenario (not just checked
-  offline). A normal inquiry and a boundary-marker-escape adversarial
-  inquiry both completed successfully across all 5 modules, with
-  `store`/`createConversation` confirmed `false` on the live call. This
-  also surfaced a real operational gap — see
-  [`docs/runtime-verification.md`](docs/runtime-verification.md) for the
-  full record, including exactly what was **not** covered (fresh-account
-  setup, concurrency, rate limits, long-term operation).
-- **Phase 2B candidate** — a stateful 72-module workflow was built and
-  live-verified for its happy path, retry/skip behavior, finalization, and
-  terminal duplicate-prevention gate. Incomplete abnormal/validation routes
-  remain explicitly blocked. See
-  [Phase 2B: operational hardening](#phase-2b-operational-hardening).
+このプロジェクトでは、次の方針で対応します。
 
-No phase has called the OpenAI API from this repository's own tooling
-(live verification was performed separately, by hand, against a real
-Make scenario) — see [`docs/limitations.md`](docs/limitations.md) for
-exactly what is and isn't confirmed working.
+- AIがカテゴリ、優先度、感情、人による対応の要否を構造化JSONで返す
+- CRM記録、Slack通知、Gmail下書きを一つの処理フローにまとめる
+- `Processing_State` と完了フラグで、再実行時に成功済みの副作用をスキップする
+- Gmailは下書き専用とし、人が内容を確認して送信する
 
-## System overview
+## システム概要
 
-The current Phase 2B candidate wraps the business steps in a stateful Make.com
-workflow. It creates or finds a `Processing_State` record, stops terminal
-duplicates, persists AI output, and skips downstream actions already marked
-complete:
+1. 顧客がGoogle Formから問い合わせを送信
+2. Make.comがGoogle Sheetsの新規行を検知し、安定したRequest IDを生成
+3. 既存の処理状態を確認し、完了済みの重複リクエストを停止
+4. 保存済みAI結果がなければ、OpenAIが問い合わせを分類して返信案を生成
+5. Google SheetsのCRMタブに処理結果を記録
+6. Slackへ担当者向けの要約を通知
+7. Gmailに返信下書きを作成
+8. 各完了フラグを保存し、再実行時の重複処理を防止
 
-1. A customer submits an inquiry via **Google Form**, which lands as a new
-   row in a **Google Sheet** (`Form` tab).
-2. The Make trigger watches for new rows and derives a stable Request ID.
-3. A common gate checks prior processing state; terminal duplicates stop.
-4. Valid new/retry work is sent to **OpenAI** when AI output is not already
-   persisted. OpenAI classifies it (category,
-   priority, sentiment, whether a human needs to be involved) and drafts a
-   reply — all as a single structured JSON response.
-5. The enriched record is appended to the `CRM` tab of the same
-   spreadsheet.
-6. A summary is posted to a **Slack** channel for visibility.
-7. A reply **draft** is created in **Gmail**, addressed to the customer,
-   ready for a human to review and send.
-8. Completion flags prevent a retry from repeating successful side effects.
+![Gmail Support Assistantのシステム構成](docs/diagrams/system-architecture.svg)
 
-![Gmail Support Assistant system architecture](docs/diagrams/system-architecture.svg)
+詳細は[アーキテクチャ](docs/architecture.md)、[データモデル](docs/data-model.md)、[冪等性とエラー処理](docs/error-handling-and-idempotency.md)を参照してください。
 
-The diagram is a repository-native SVG containing no account IDs or live
-customer data. A text description and component table are available in
-[`docs/architecture.md`](docs/architecture.md).
+## AI・ルール・人の責任分担
 
-The small Phase 2A five-module linear Blueprint is still published as a
-historical baseline. Phase 2B improves replay safety, but it is not fully
-production-ready: abnormal re-fetch and validation-notification routes remain
-blocked, and concurrency/failure recovery is unverified. See
-[`docs/architecture.md`](docs/architecture.md) and
-[`docs/limitations.md`](docs/limitations.md).
-
-See [`docs/architecture.md`](docs/architecture.md) for the full
-module-by-module breakdown and [`docs/data-model.md`](docs/data-model.md)
-for the spreadsheet schema.
-
-## Phase 2B: operational hardening
-
-Live verification found a concrete bug in the linear design above: if
-the Gmail draft step fails (e.g. an invalid destination address) *after*
-the CRM row and Slack notification have already succeeded, re-running
-the row duplicates the CRM row and Slack message — only the Gmail step
-actually needed retrying. See
-[`docs/runtime-verification.md`](docs/runtime-verification.md)
-for how this was found.
-
-Phase 2B is the response to that finding. What exists now:
-
-- [`docs/error-handling-and-idempotency.md`](docs/error-handling-and-idempotency.md) —
-  the design: input validation rules, a Request ID scheme, and a
-  processing-state machine (`PENDING` / `PROCESSING` / `COMPLETED` /
-  `FAILED_VALIDATION` / `FAILED_RETRYABLE` / `FAILED_PERMANENT` /
-  `NEEDS_HUMAN`) so a rerun skips side effects that already succeeded.
-  Includes an explicit comparison of Make Data Store vs.
-  spreadsheet-based state tracking, and an honest statement of what this
-  design does **not** guarantee (strict exactly-once under concurrent
-  execution).
-- [`make/phase2b-deployment-checklist.md`](make/phase2b-deployment-checklist.md) —
-  the build/verification checklist and remaining test gates.
-- [`make/blueprints/gmail-support-assistant.phase2b.candidate.json`](make/blueprints/gmail-support-assistant.phase2b.candidate.json) —
-  a sanitized export of the live-built candidate. Its happy path and terminal
-  replay gate were verified, and a synthetic Google Form response completed
-  the full chain through CRM, Slack, and Gmail draft; explicitly blocked
-  branches are documented in
-  [`docs/runtime-verification.md`](docs/runtime-verification.md).
-- [`spreadsheet/templates/gmail-support-assistant-template.xlsx`](spreadsheet/templates/gmail-support-assistant-template.xlsx) —
-  a header-only `Form`/`CRM`/`Processing_State` spreadsheet template (built from
-  [`docs/data-model.md`](docs/data-model.md), not copied from any real
-  spreadsheet).
-- [`sample_data/`](sample_data/) —
-  [`form-submissions.csv`](sample_data/form-submissions.csv) and
-  [`crm-records.csv`](sample_data/crm-records.csv), `example.com`-only
-  example rows, including one clearly-labeled test row that reproduces
-  the invalid-email finding on purpose — see
-  [`sample_data/README.md`](sample_data/README.md).
-
-**What Phase 2B does not prove:** complete abnormal-route recovery, fresh-account
-portability, bulk/concurrent safety, strict exactly-once processing, or
-long-term operation. Those remain visible rather than hidden behind a
-production-ready claim.
-
-## Demo
-
-![Sanitized end-to-end demo using synthetic data](assets/demo/synthetic-e2e-demo.svg)
-
-This is a public-safe reconstruction using `example.com` data, not a screenshot
-of private Make, Google, Slack, or Gmail accounts. It mirrors the live-verified
-flow while avoiding account names, workspace identifiers, URLs, and historical
-customer/test records.
-
-### What was observed live
-
-| Check | Result |
+| 担当 | 役割 |
 |---|---|
-| Google Form response contract | Exact `Timestamp, Name, Email, Subject, Message` headers |
-| First Form-originated execution | Full path completed in 26 Make operations |
-| Processing state | `COMPLETED`; AI/CRM/Slack/Gmail flags all true |
-| Gmail safety | One draft created; no email sent |
-| Replay of the same request | Stopped after 6 control/gate operations |
-| Duplicate side effects | No second CRM row, Slack module run, or Gmail draft |
+| AI | 問い合わせの分類、優先度・感情・人対応要否の判定、返信案の作成 |
+| 決定的ルール | 入力検証、Request ID、処理状態、完了フラグ、再実行時のスキップ、Gmail下書き作成 |
+| 人 | AI出力と顧客情報の確認、必要な修正、最終的な送信判断 |
 
-The Slack result above is supported by Make execution history and the persisted
-`Slack_Notified` flag; the Slack message was not independently inspected in the
-Slack UI. See [`docs/runtime-verification.md`](docs/runtime-verification.md) for
-the evidence boundary and remaining unverified cases.
+AIの出力は業務判断の補助です。送信や例外対応の最終責任をAIに委ねる設計ではありません。
 
-### Reproduce the controlled demo
+## 信頼性と安全性
 
-1. Import the sanitized Phase 2B Blueprint and reconnect the four services.
-2. Link a Google Form using the exact contract under [`forms/`](forms/).
-3. Keep the scenario Inactive and submit one synthetic `example.com` inquiry.
-4. Use **Run once**, inspect every executed route, and confirm Gmail created a
-   draft rather than sending mail.
+- Gmail返信は自動送信せず、下書きとして作成します。
+- OpenAIには顧客のメールアドレスを送信しません。
+- OpenAI Responses APIの `store` と `createConversation` は `false` です。
+- Phase 2Bでは処理状態と副作用ごとの完了フラグを保持し、観測した完了済みリプレイを入口で停止しました。
+- 公開Blueprint、サンプルデータ、図には実アカウントID、認証情報、実顧客データを含めていません。
+- 異常系の一部は未完成のまま明示的にブロックしており、厳密なexactly-once処理は保証していません。
 
-Follow [`docs/setup.md`](docs/setup.md) and the
-[`Phase 2B deployment checklist`](make/phase2b-deployment-checklist.md); the
-diagram alone is not a setup guide.
+実行時には、氏名・件名・本文がOpenAIへ送信され、Slackには氏名、メールアドレス、AI要約、返信案が送信されます。導入前に[セキュリティ方針](SECURITY.md)と[制約事項](docs/limitations.md)を確認してください。
 
-## Tech stack
+## 検証済みの証拠
 
-- **Google Forms** — inquiry intake
-- **Google Sheets** — inquiry log (`Form`) and CRM record (`CRM`)
-- **Make.com** — orchestration/automation platform (no-code scenario)
-- **OpenAI** (Responses API, structured outputs / JSON Schema) —
-  classification and reply drafting
-- **Slack** — internal notifications
-- **Gmail** — reply draft creation
+Phase 2B候補を実際のMakeシナリオで実行し、合成データを用いて次の結果を確認しました。
 
-## Directory structure
+| 確認項目 | 観測結果 |
+|---|---|
+| Google Formの入力契約 | `Timestamp, Name, Email, Subject, Message` の正確なヘッダー |
+| Form起点の初回実行 | 26 Makeオペレーションで全経路が完了 |
+| 処理状態 | `COMPLETED`、AI・CRM・Slack・Gmailの各フラグがtrue |
+| Gmailの安全境界 | 下書き1件を作成、メール送信なし |
+| 同一Request IDの再実行 | 6つの制御・ゲート処理後に停止 |
+| 重複する副作用 | CRM行、Slackモジュール実行、Gmail下書きの重複なし |
 
-```
-.
-├── README.md
-├── LICENSE                            # MIT License
-├── SECURITY.md
-├── CONTRIBUTING.md
-├── .gitignore                          # excludes original blueprint/xlsx and all secrets
-├── .gitattributes                      # consistent LF text / binary xlsx handling
-├── docs/
-│   ├── architecture.md                 # module-by-module system design
-│   ├── setup.md                        # setup walkthrough
-│   ├── data-model.md                   # Form / CRM / Processing_State schema
-│   ├── limitations.md                  # known gaps and unverified claims
-│   ├── runtime-verification.md         # Phase 2A + Phase 2B live evidence
-│   ├── implementation-history.md       # phase-by-phase implementation record
-│   ├── error-handling-and-idempotency.md  # Phase 2B design and contracts
-│   └── diagrams/
-│       └── system-architecture.svg      # public-safe architecture visual
-├── make/
-│   ├── README.md
-│   ├── mapping-guide.md                # what was sanitized + what to reconfigure
-│   ├── phase2b-deployment-checklist.md # implementation and remaining verification gates
-│   ├── scripts/
-│   │   └── sanitize_phase2b_blueprint.py
-│   └── blueprints/
-│       ├── gmail-support-assistant.sanitized.json
-│       └── gmail-support-assistant.phase2b.candidate.json
-├── prompts/                            # externalized AI prompt + JSON Schema (Phase 2A)
-│   ├── README.md                       # how these stay in sync with the blueprint
-│   ├── CHANGELOG.md                    # prompt/schema version history
-│   ├── support-triage-v1.md            # the prompt, documented and versioned
-│   └── response-schema.json            # the OpenAI structured-output JSON Schema
-├── tests/                              # offline, no-API-call tests
-│   ├── README.md
-│   ├── validate_blueprint.py           # static structural validation (run with python3)
-│   └── prompt-cases.jsonl              # 13 offline evaluation case specs (no runner yet)
-├── spreadsheet/
-│   └── templates/
-│       └── gmail-support-assistant-template.xlsx  # header-only 3-sheet template
-├── sample_data/                        # example.com-only sample rows
-│   ├── README.md
-│   ├── form-submissions.csv
-│   └── crm-records.csv
-├── forms/                              # sanitized Google Form spec + Apps Script creator
-│   ├── README.md
-│   ├── google-form-spec.json
-│   └── create-google-form.gs
-└── assets/
-    ├── screenshots/                    # reserved for safely redacted UI evidence
-    └── demo/
-        └── synthetic-e2e-demo.svg       # example.com-only demo reconstruction
+SlackについてはMakeの実行履歴と `Slack_Notified` フラグによる確認であり、Slack UI上のメッセージは独立確認していません。検証範囲と未確認事項は[実行時検証記録](docs/runtime-verification.md)に分離して記録しています。
+
+![合成データによる公開用エンドツーエンドデモ](assets/demo/synthetic-e2e-demo.svg)
+
+この図は `example.com` の合成データを使った再構成であり、非公開アカウントのスクリーンショットではありません。
+
+## 公開成果物で再現できること
+
+構造検証はAPIを呼び出さずに実行できます。
+
+```bash
+python3 tests/validate_blueprint.py
 ```
 
-## Setup
+ライブ環境で再現する場合は、公開済みのPhase 2B Blueprintをインポートして各サービスを再接続し、[セットアップ手順](docs/setup.md)と[デプロイ確認表](make/phase2b-deployment-checklist.md)に従ってください。シナリオはInactiveのまま、合成データで `Run once` を使い、Gmailが送信ではなく下書きを作成したことを確認します。
 
-See [`docs/setup.md`](docs/setup.md) for the full walkthrough (importing
-the blueprint, wiring up connections, and the required manual
-reconfiguration — Make connection IDs, Spreadsheet ID, Slack channel ID —
-detailed in [`make/mapping-guide.md`](make/mapping-guide.md)).
+## 技術構成
 
-## Security
+- Google Forms / Google Sheets
+- Make.com
+- OpenAI Responses API（Structured Outputs / JSON Schema）
+- Slack
+- Gmail
+- Pythonによるオフライン構造検証
 
-- No secrets, credentials, real account identifiers, or real customer data
-  are included in this repository. See [`SECURITY.md`](SECURITY.md) for
-  the full policy and [`make/mapping-guide.md`](make/mapping-guide.md) for
-  exactly what was sanitized out of the published blueprint.
-- Gmail integration is **draft-only** by design.
-- **When the scenario actually runs, customer data is sent to third
-  parties.** As of Phase 2A: each inquiry's name, subject, and message
-  are sent to OpenAI, with `store: false` and `createConversation: false`
-  (the customer's **email address is no longer sent to OpenAI** — this
-  was removed in Phase 2A). Slack still receives the customer's name,
-  **email address**, an AI summary, and the AI-drafted reply, since the
-  Slack notification and Gmail draft steps still need the email address
-  downstream. This is not fully minimized for privacy — see
-  [`SECURITY.md`](SECURITY.md#third-party-data-exposure-when-this-scenario-runs)
-  and [`docs/limitations.md`](docs/limitations.md#data-and-privacy-gaps)
-  before any production use.
+## リポジトリの主な内容
 
-## Limitations
+- [`make/blueprints/`](make/blueprints/) — サニタイズ済みのPhase 2A / Phase 2B Blueprint
+- [`prompts/`](prompts/) — バージョン管理されたプロンプトとJSON Schema
+- [`tests/`](tests/) — APIを呼び出さない構造検証と13件の評価ケース仕様
+- [`docs/`](docs/) — 設計、セットアップ、検証記録、制約事項
+- [`spreadsheet/templates/`](spreadsheet/templates/) — ヘッダーのみの3シート構成テンプレート
+- [`sample_data/`](sample_data/) — `example.com` の合成サンプル
+- [`forms/`](forms/) — Google Form仕様と作成用Apps Script
 
-**This project is not claiming to be production-ready.** A normal
-inquiry and one adversarial (boundary-escape) inquiry have been run
-successfully against a live Make scenario (see
-[`docs/runtime-verification.md`](docs/runtime-verification.md)), and
-that same verification pass found a duplicate-processing bug. The Phase 2B
-candidate prevented duplication in the observed terminal replay, but some
-routes remain blocked and fresh-account setup, concurrent/bulk load, rate
-limiting, failure recovery, and long-term operation remain unverified. See
-[`docs/limitations.md`](docs/limitations.md) for the complete, current
-list of what's confirmed vs. not.
+## 現在の制約
 
-## Roadmap
+このプロジェクトは本番運用可能とは主張していません。正常系と完了済みリプレイはライブ検証済みですが、異常時の再取得、複数一致、検証通知、障害復旧の一部経路はブロックされています。新規アカウントへの移植、並行・大量実行、レート制限、長期運用も未検証です。
 
-- Complete and live-test the Phase 2B candidate's blocked validation,
-  abnormal re-fetch, multiple-match, and failure-recovery routes.
-- Build an OpenAI-calling evaluation harness for
-  [`tests/prompt-cases.jsonl`](tests/prompt-cases.jsonl) (13 case specs
-  exist; running them against the real API is not yet done).
-- Verify a **fresh** setup end-to-end on a brand-new
-  Make/Google/Slack/OpenAI account (live verification so far reused an
-  existing, partially-configured environment).
-- Add continuous integration after the initial public repository foundation
-  has been reviewed.
-- Add real UI screenshots only if every account, URL, workspace, channel, and
-  customer-identifying value can be reliably removed; until then, keep the
-  public-safe synthetic demo visualization.
+完全な一覧は[制約事項](docs/limitations.md)を参照してください。
 
-## Publishing safety
+## 公開範囲とプライバシー
 
-This repository is published from the reviewed `main` branch. Keep the
-following safeguards in place for every future commit and release:
+このリポジトリは公開用にサニタイズされています。元のBlueprint、実スプレッドシート、接続ID、Webhook URL、認証情報、実顧客データは含みません。公開時の取り扱いと除外対象は[セキュリティ方針](SECURITY.md)と[マッピングガイド](make/mapping-guide.md)に記載しています。
 
-- **Confirm `.gitignore` is actually protecting the private files.**
-  [`.gitignore`](.gitignore) excludes the private originals
-  (`Gmail Support Assistant.blueprint.json`, `Gmail_Support_Assistant.xlsx`)
-  and `.claude/settings.local.json`, among other secret-shaped patterns.
-  This only works if you publish **via `git`** so `.gitignore` is actually
-  consulted.
-- **`.gitignore` does not protect you if you upload the folder directly**
-  through GitHub's "upload files" / drag-and-drop web UI, or any other
-  method that doesn't go through a `git add` that respects `.gitignore`.
-  That path can upload the private originals and local settings file
-  right along with everything else. Publish through `git`, not a folder
-  upload, or manually verify the excluded files aren't included if you
-  must use another method.
-- **Review what's actually staged before each commit/push**, every
-  time: `git status` (confirm the private originals and
-  `.claude/settings.local.json` do **not** appear as tracked/staged), and
-  spot-check `git diff --staged` or the file list itself. Don't assume
-  `.gitignore` did its job — verify it.
+## ライセンス
 
-## License
-
-This project is available under the [MIT License](LICENSE).
+[MIT License](LICENSE)
